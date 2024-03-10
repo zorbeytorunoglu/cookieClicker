@@ -20,6 +20,8 @@ tasks.withType<KotlinCompile>().configureEach {
 dependencies {
     compileOnly(libs.android.gradlePlugin)
     compileOnly(libs.kotlin.gradlePlugin)
+    compileOnly(libs.room.gradlePlugin)
+    compileOnly(libs.ksp.gradlePlugin)
 }
 
 gradlePlugin {
@@ -39,6 +41,18 @@ gradlePlugin {
         register("androidLibraryCompose") {
             id = "cookieclicker.android.library.compose"
             implementationClass = "AndroidLibraryComposeConventionPlugin"
+        }
+        register("androidHilt") {
+            id = "cookieclicker.android.hilt"
+            implementationClass = "AndroidHiltConventionPlugin"
+        }
+        register("androidRoom") {
+            id = "cookieclicker.android.room"
+            implementationClass = "AndroidRoomConventionPlugin"
+        }
+        register("androidFeature") {
+            id = "cookieclicker.android.feature"
+            implementationClass = "AndroidFeatureConventionPlugin"
         }
     }
 }
