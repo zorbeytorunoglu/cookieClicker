@@ -4,11 +4,15 @@ import android.util.Log
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.updateTransition
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -43,25 +47,27 @@ fun GameScreen() {
 fun Cookie() {
 
     var isBouncing by remember { mutableStateOf(false) }
-    val infiniteTransition = rememberInfiniteTransition(label = "infiniteTransition")
 
-    val scale by infiniteTransition.animateFloat(
-        initialValue = 1f,
+    val scale by animateFloatAsState(
         targetValue = if (isBouncing) 1.2f else 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 250, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ), label = "bounceAnimation"
+        animationSpec = tween(durationMillis = 75, easing = FastOutSlowInEasing),
+        finishedListener = {
+            isBouncing = false
+        },
+        label = "cookieInOutAnimation"
     )
 
     Image(
         painter = painterResource(id = com.zorbeytorunoglu.cookieclicker.core.ui.R.drawable.cookie),
         contentDescription = null,
         modifier = Modifier
-            .size(100.dp)
+            .size(200.dp)
             .scale(scale)
-            .clickable {
-                isBouncing = !isBouncing
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() }
+            ) {
+                isBouncing = true
                 Log.d("GameScreen", "Clicked")
             }
     )
