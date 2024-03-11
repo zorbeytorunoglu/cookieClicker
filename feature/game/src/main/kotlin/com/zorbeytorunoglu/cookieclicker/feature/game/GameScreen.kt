@@ -75,7 +75,6 @@ fun CookieClickerAnimation() {
     var visible by remember { mutableStateOf(false) }
     var tapPosition by remember { mutableStateOf(IntOffset.Zero) }
 
-    // Animate the vertical position (floating up)
     val offsetY by animateDpAsState(
         targetValue = if (visible) (-120).dp else 0.dp,
         animationSpec = tween(durationMillis = 1000, easing = FastOutSlowInEasing),
@@ -98,7 +97,6 @@ fun CookieClickerAnimation() {
             },
         contentAlignment = Alignment.Center
     ) {
-        // Show the "+1" text with animation
         AnimatedVisibility(
             visible = visible,
             enter = fadeIn() + slideInVertically(
