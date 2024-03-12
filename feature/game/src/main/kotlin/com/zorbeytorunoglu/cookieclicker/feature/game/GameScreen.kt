@@ -5,42 +5,33 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.animateOffsetAsState
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.keyframes
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.updateTransition
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -48,35 +39,47 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.round
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 
 @Composable
 fun GameScreen() {
+    val density = LocalDensity.current
+    val tapPositions = remember { mutableStateListOf<Offset>() }
 
-    Column(
-        Modifier.fillMaxSize()
+    Box(
+        Modifier
+            .fillMaxSize()
+            .pointerInput(Unit) {
+                awaitEachGesture {
+                    awaitFirstDown().also { tapPositions.add(it.position) }
+                }
+            }
     ) {
-
-        CookieClickerAnimation()
-
+        tapPositions.forEach { tapPosition ->
+            CookieClickerAnimation(
+                modifier = Modifier.fillMaxSize(),
+                tapPosition = tapPosition,
+                density = density
+            )
+        }
     }
-
 }
 
 @Composable
-fun CookieClickerAnimation() {
+fun CookieClickerAnimation(
+    modifier: Modifier = Modifier,
+    tapPosition: Offset,
+    density: Density
+) {
+    var visible by remember { mutableStateOf(true) }
 
-    val density = LocalDensity.current
-    var visible by remember { mutableStateOf(false) }
-    var tapPosition by remember { mutableStateOf(IntOffset.Zero) }
-
-    val offsetY by animateDpAsState(
-        targetValue = if (visible) (-120).dp else 0.dp,
+    val offsetY = animateDpAsState(
+        targetValue = (-120).dp,
         animationSpec = tween(durationMillis = 1000, easing = FastOutSlowInEasing),
         label = ""
     )
@@ -86,25 +89,15 @@ fun CookieClickerAnimation() {
         visible = false
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .pointerInput(Unit) {
-                detectTapGestures { offset ->
-                    tapPosition = offset.round()
-                    visible = true
-                }
-            },
-        contentAlignment = Alignment.Center
-    ) {
+    Box(modifier = modifier) {
         AnimatedVisibility(
             visible = visible,
             enter = fadeIn() + slideInVertically(
-                initialOffsetY = { it },
+                initialOffsetY = { with(density) { tapPosition.y.roundToInt() } },
                 animationSpec = tween(durationMillis = 500, easing = FastOutLinearInEasing)
             ),
             exit = fadeOut() + slideOutVertically(
-                targetOffsetY = { it },
+                targetOffsetY = { with(density) { tapPosition.y.roundToInt() } },
                 animationSpec = tween(durationMillis = 500, easing = LinearOutSlowInEasing)
             )
         ) {
@@ -113,11 +106,7 @@ fun CookieClickerAnimation() {
                 fontSize = 36.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.Green,
-                modifier = Modifier
-                    .offset(
-                        x = with(density) { tapPosition.x.toDp() },
-                        y = offsetY
-                    )
+                modifier = Modifier.offset { IntOffset(tapPosition.x.roundToInt(), tapPosition.y.roundToInt()) }
             )
         }
     }
