@@ -29,3 +29,6 @@ include(":core:designsystem")
 include(":core:ui")
 
 include(":feature:game")
+include(":feature:settings")
+include(":feature:stats")
+include(":feature:store")
