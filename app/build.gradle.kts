@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.cookieclicker.android.application)
     alias(libs.plugins.cookieclicker.android.application.compose)
+    alias(libs.plugins.cookieclicker.android.hilt)
 }
 
 android {

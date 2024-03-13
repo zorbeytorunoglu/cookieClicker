@@ -16,11 +16,11 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
@@ -29,12 +29,15 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.scale
@@ -42,14 +45,16 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
@@ -68,25 +73,46 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
-fun GameScreen() {
-    val tapPositions = remember { mutableStateListOf<Offset>() }
+fun GameScreen(
+    viewModel: GameViewModel = hiltViewModel()
+) {
 
-    Box(
-        Modifier
-            .fillMaxSize()
-            .pointerInput(Unit) {
-                awaitEachGesture {
-                    awaitFirstDown().also { tapPositions.add(it.position) }
-                }
-            }
+    val cookiesState by viewModel.cookies.collectAsState(initial = 0)
+
+    Column(modifier = Modifier
+        .fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        tapPositions.forEach { tapPosition ->
-            CookieClickerAnimation(
-                modifier = Modifier.fillMaxSize(),
-                tapPosition = tapPosition
+
+        Text(
+            text = "Öz Sivas Kardeşler Kurabiye Fırını",
+            style = TextStyle(
+                color = Color.Black,
+                fontSize = 50.sp,
+                fontWeight = FontWeight.SemiBold,
+                fontFamily = FontFamily.Cursive
             )
+        )
+        Text(
+            text = "Pişirilen Kurabiye: $cookiesState",
+            style = TextStyle(
+                color = Color.Green,
+                fontSize = 55.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = FontFamily.Monospace
+            )
+        )
+
+        Box(modifier = Modifier
+            .fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Cookie { viewModel.incrementCookies() }
         }
+
     }
+    
 }
 
 @Composable
@@ -125,7 +151,11 @@ fun CookieClickerAnimation(
             JumpAnimatedText(
                 text = "+1",
                 style = TextStyle(
-                    fontSize = 36.sp
+                    fontSize = 24.sp,
+                    color = Color.White,
+                    fontFamily = FontFamily.Monospace,
+                    fontStyle = FontStyle.Italic,
+                    fontWeight = FontWeight.Bold
                 ),
                 modifier = Modifier.offset { IntOffset(
                     tapPosition.x.roundToInt(),
@@ -133,27 +163,18 @@ fun CookieClickerAnimation(
                 ) }
             )
 
-//            Text(
-//                text = "+1",
-//                fontSize = 36.sp,
-//                fontWeight = FontWeight.Bold,
-//                color = Color.Green,
-//                modifier = Modifier
-//                    .offset {
-//                    IntOffset(
-//                        tapPosition.x.roundToInt(),
-//                        (initialTapY.roundToInt() - offsetY.value.roundToPx())
-//                    )
-//                }
-//            )
         }
     }
 }
 
 @Composable
-fun Cookie() {
+fun Cookie(
+    onClick: () -> Unit
+) {
 
     var isBouncing by remember { mutableStateOf(false) }
+
+    val tapPositions = remember { mutableStateListOf<Offset>() }
 
     val scale by animateFloatAsState(
         targetValue = if (isBouncing) 1.2f else 1f,
@@ -163,20 +184,32 @@ fun Cookie() {
         },
         label = "cookieInOutAnimation"
     )
-
-    Image(
-        painter = painterResource(id = com.zorbeytorunoglu.cookieclicker.core.ui.R.drawable.cookie),
-        contentDescription = null,
-        modifier = Modifier
-            .size(200.dp)
-            .scale(scale)
-            .clickable(
-                indication = null,
-                interactionSource = remember { MutableInteractionSource() }
-            ) {
-                isBouncing = true
+    
+    Box(modifier = Modifier
+        .pointerInput(Unit) {
+            awaitEachGesture {
+                awaitFirstDown().also { 
+                    tapPositions.add(it.position) 
+                    isBouncing = true
+                    onClick.invoke()
+                }
             }
-    )
+        }
+    ) {
+
+        Image(
+            painter = painterResource(id = com.zorbeytorunoglu.cookieclicker.core.ui.R.drawable.cookie),
+            contentDescription = null,
+            modifier = Modifier
+                .size(200.dp)
+                .scale(scale)
+        )
+        
+        tapPositions.onEach { tapPosition ->
+            CookieClickerAnimation(tapPosition = tapPosition)
+        }
+        
+    }
 
 }
 
@@ -269,31 +302,16 @@ internal fun JumpAnimatedText(
 
 @OptIn(DelicateCoroutinesApi::class)
 class AnimatedTextState() {
-    /** Whether animation is currently paused. */
-    val paused: StateFlow<Boolean> get() = _paused
+    private val paused: StateFlow<Boolean> get() = _paused
 
-    /** Whether animation is currently stopped. */
-    val stopped: StateFlow<Boolean> get() = _stopped
-
-    /** Whether animation is currently playing (not paused). */
-    val playing get() = paused.map { !it }
-
-    /** Whether animation is currently ongoing (not stopped). */
-    val ongoing get() = stopped.map { !it }
-
-    /** Whether this instance is attached to an animated text. */
     internal var attached = false
 
-    /** Whether initial text layout has been done. */
     internal val layout = CompletableDeferred<Any>()
 
-    /** Current visible character index. */
-    internal var current by mutableStateOf(-1)
+    internal var current by mutableIntStateOf(-1)
 
-    /** Current animation coroutine job. */
     private var job: Job? = null
 
-    /** Current animation coroutine jobs. */
     private var jobs: MutableSet<Job> = mutableSetOf()
 
     private var _paused = MutableStateFlow(true)
@@ -338,7 +356,7 @@ class AnimatedTextState() {
         _stopped.update { false }
     }
 
-    fun stop() {
+    private fun stop() {
         pause()
         current = -1
         for (i in visibility.indices) {
@@ -347,7 +365,7 @@ class AnimatedTextState() {
         _stopped.update { true }
     }
 
-    fun resume() {
+    private fun resume() {
         if (paused.value) {
             job = GlobalScope.launch(Dispatchers.IO) {
                 layout.await()
@@ -374,7 +392,7 @@ class AnimatedTextState() {
         }
     }
 
-    fun pause() {
+    private fun pause() {
         if (!paused.value) {
             job?.cancel()
             job = null
@@ -386,8 +404,5 @@ class AnimatedTextState() {
 }
 
 
-/**
- * Creates a [AnimatedTextState] that is remembered across compositions.
- */
 @Composable
 fun rememberAnimatedTextState() = remember { AnimatedTextState() }
